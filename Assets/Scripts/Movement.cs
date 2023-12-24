@@ -1,96 +1,105 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEditor.Tilemaps;
+// Код для Unity C# гри з космічним кораблем
 using UnityEngine;
 
-
-namespace Movement
+public class SpaceShipController : MonoBehaviour
 {
-    
+    public int score;
+    public float speed = 5f;
+    public int maxHealth = 3;
 
-    public class Mover : MonoBehaviour
+    private int currentHealth;
+    private bool bonusCollected = false;
+
+    void Start()
     {
-        [Header("HirizontalMovement")]
-        [SerializeField] private float _speed;
-        [SerializeField] private bool _faceRight;
-        [Header("Jamp")]
-        [SerializeField] private float _jumpPower;
-        [SerializeField] private Transform  _groundChecker;
-        [SerializeField] private float _groundCheckRadius;
-        [SerializeField] private LayerMask _whatIsGround;
-        private Rigidbody2D _rigidbody2D;
-        private float _direction;
-        private bool _jump;
-        private bool _isFacingUp;
-        private bool _isJumping;
+        currentHealth = maxHealth;
+    }
 
+    void Update()
+    {
+        float horizontalInput = Input.GetAxis("Horizontal");
+        float verticalInput = Input.GetAxis("Vertical");
+        Vector3 movement = new Vector3(horizontalInput, verticalInput, 0f);
+        transform.Translate(movement * speed * Time.deltaTime);
+    }
 
-        private void Start()
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Enemy"))
         {
-            _rigidbody2D = GetComponent<Rigidbody2D>();
+            TakeDamage();
+        }
+        else if (other.CompareTag("Bonus"))
+        {
+            CollectBonus();
+        }
+    }
+
+    void TakeDamage()
+    {
+        currentHealth--;
+
+        if (currentHealth <= 0)
+        {
+            GameOver();
+        }
+    }
+
+    void CollectBonus()
+    {
+        if (!bonusCollected && score < currentHealth)
+        {
+            score++;
+            bonusCollected = true;
+            // Update UI for score
+        }
+        else
+        {
+            bonusCollected = false;
+        }
+    }
+
+    void GameOver()
+    {
+        Debug.Log("Game Over - You Lose!");
+    }
+}
+
+public class LevelManager : MonoBehaviour
+{
+    private int currentLevel = 1; private SpaceShipController spaceShipController;
+
+    void Start()
+    {
+        spaceShipController = FindObjectOfType<SpaceShipController>(); // Assuming there is only one instance of SpaceShipController
+    }
+
+    void Update()
+    {
+        if (spaceShipController.score == currentLevel && currentLevel < 3)
+        {
+            IncreaseLevel();
         }
 
-        private void Update()
+        if (spaceShipController.score >= 3)
         {
-            _direction = Input.GetAxisRaw("Horizontal");
-            if (Input.GetButtonDown("Jump"))
-                _jump = true;
+            GameWin();
         }
+    }
 
-        private void FixedUpdate()
-        {
-            bool isGrounded = Physics2D.OverlapCircle(_groundChecker.position, _groundCheckRadius, _whatIsGround);
-           
-   
-            if (!isGrounded)
-            {
-                _isJumping = true;
-                if (_rigidbody2D.velocity.y > 0)
-                    _isFacingUp = true;
-                else
-                    _isFacingUp = false;
-            }
-            else
-            {
-                _isJumping = false;
-            }
-
-            
-    
-        Move(_direction);
-            SetDirection();
-            if (_jump && isGrounded)
-                Jump ();
-            _jump = false;
-        }
-        
-        private void Move(float direction)
-        {
-            _rigidbody2D.velocity = new Vector2(_speed * direction, _rigidbody2D.velocity.y);
-        }
-        private void Jump()
-        {
-            if (_isFacingUp)
-            _rigidbody2D.AddForce(Vector2.up * _jumpPower);
-            else
-                _rigidbody2D.AddForce(Vector2.up * _jumpPower);
-        }
-        private void SetDirection()
-        {
-            if (_faceRight && _direction < 0)
-                Flip();
-            else if (!_faceRight && _direction > 0)
-                Flip();
-        }
-        
-         private void Flip()
-            {
-                _faceRight = !_faceRight;
-                Vector3 scale = transform.localScale;
-                scale.x *= -1;
-                transform.localScale = scale;
-            }
+    void IncreaseLevel()
+    {
+        currentLevel++; // Збільшення номера рівня
 
         
+        Debug.Log("Level Up! Now on Level " + currentLevel); currentLevel++; // Збільшення номера рівня
 
-    } }
+        
+    }
+
+
+    void GameWin()
+    {
+        Debug.Log("Congratulations! You Win!");
+    }
+}
